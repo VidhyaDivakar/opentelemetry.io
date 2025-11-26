@@ -95,6 +95,33 @@ sub applyPatchOrPrintMsgIf($$$) {
   return 0;
 }
 
+# Keep the following as a template:
+# sub patchSpec_because_of_SemConv_DockerAPIVersions() {
+#   return unless
+#     # Restrict the patch to the proper spec, and section or file:
+#     $ARGV =~ m|^tmp/semconv/docs/|
+#     &&
+#     # Call helper function that will cause the function to return early if the
+#     # current version of the named spec (arg 2) is greater than the target
+#     # version (arg 3). The first argument is a unique id that will be printed if
+#     # the patch is outdated. Otherwise, if the patch is still relevant we fall
+#     # through to the body of this patch function.
+#     applyPatchOrPrintMsgIf('2025-11-21-docker-api-versions', 'semconv', '1.39.0-dev');
+
+#   # Give infor about the patch:
+#   #
+#   # For the problematic links, see:
+#   # https://github.com/open-telemetry/semantic-conventions/issues/3103
+#   #
+#   # Replace older Docker API versions with the latest one like in:
+#   # https://github.com/open-telemetry/semantic-conventions/pull/3093
+
+#   # This is the actual regex-based patch code:
+#   s{
+#     (https://docs.docker.com/reference/api/engine/version)/v1.(43|51)/(\#tag/)
+#   }{$1/v1.52/$3}gx;
+# }
+
 sub patchSpec_because_of_SemConv_DockerAPIVersions() {
   return unless
     # Restrict the patch to the proper spec, and section or file:
@@ -119,6 +146,19 @@ sub patchSpec_because_of_SemConv_DockerAPIVersions() {
   s{
     (https://docs.docker.com/reference/api/engine/version)/v1.(43|51)/(\#tag/)
   }{$1/v1.52/$3}gx;
+}
+
+sub patchSpec_because_of_SemConv_DatabaseRenamedToDb() {
+  return unless
+    # Restrict the patch to the proper spec, and section or file:
+    # Note that here we replace links into semconv from the spec
+    $ARGV =~ m|^tmp/otel/specification/|
+      && applyPatchOrPrintMsgIf('2025-11-26-database-section-renamed-to-db', 'semconv', '1.39.0-dev');
+
+  # Give infor about the patch, see:
+  # https://github.com/open-telemetry/opentelemetry.io/pull/8311#issue-3577941378
+
+  s|(/semconv)/database(/database-)|$1/db$2|g;
 }
 
 sub getVersFromSubmodule() {
@@ -243,6 +283,8 @@ while(<>) {
       [^)]+
     )
   }{$otelSpecRepoUrl/tree/v$otelSpecVers/$2}gx;
+
+  patchSpec_because_of_SemConv_DatabaseRenamedToDb();
 
   s|\.\./((?:examples/)?README\.md)|$otlpSpecRepoUrl/tree/v$otlpSpecVers/$1|g if $ARGV =~ /^tmp\/otlp/;
 
